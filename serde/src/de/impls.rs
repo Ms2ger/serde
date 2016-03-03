@@ -706,7 +706,7 @@ macro_rules! map_impl {
         }
 
         impl<K, V> Visitor for $visitor_name<K, V>
-            where K: $($constraints +)*,
+            where $($constraints +)*,
                   V: Deserialize,
         {
             type Value = $ty;
@@ -735,7 +735,7 @@ macro_rules! map_impl {
         }
 
         impl<K, V> Deserialize for $ty
-            where K: $($constraints +)*,
+            where $($constraints +)*,
                   V: Deserialize,
         {
             fn deserialize<D>(deserializer: &mut D) -> Result<$ty, D::Error>
@@ -756,13 +756,24 @@ map_impl!(
     BTreeMap::new(),
     BTreeMap::insert);
 
+#[cfg(not(feature = "nightly"))]
 map_impl!(
     HashMap<K, V>,
-    <Deserialize, Eq, Hash>,
+    <K: Deserialize, Eq, Hash>,
     HashMapVisitor,
     visitor,
     HashMap::new(),
     HashMap::with_capacity(visitor.size_hint().0),
+    HashMap::insert);
+
+#[cfg(feature = "nightly")]
+map_impl!(
+    HashMap<K, V>,
+    <K: Deserialize, Eq, Hash>,
+    HashMapVisitor,
+    visitor,
+    HashMap::new(),
+    HashMap::with_capacity_and_hasher(visitor.size_hint().0, Default::default()),
     HashMap::insert);
 
 ///////////////////////////////////////////////////////////////////////////////
