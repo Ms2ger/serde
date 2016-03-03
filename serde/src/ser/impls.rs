@@ -14,6 +14,8 @@ use std::collections::{
 use collections::enum_set::{CLike, EnumSet};
 use std::hash::Hash;
 #[cfg(feature = "nightly")]
+use std::hash::BuildHasher;
+#[cfg(feature = "nightly")]
 use std::iter;
 use std::net;
 #[cfg(feature = "nightly")]
@@ -610,9 +612,24 @@ impl<K, V> Serialize for BTreeMap<K, V>
     }
 }
 
+#[cfg(not(feature = "nightly"))]
 impl<K, V> Serialize for HashMap<K, V>
     where K: Serialize + Eq + Hash,
           V: Serialize,
+{
+    #[inline]
+    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+        where S: Serializer,
+    {
+        serializer.serialize_map(MapIteratorVisitor::new(self.iter(), Some(self.len())))
+    }
+}
+
+#[cfg(feature = "nightly")]
+impl<K, V, H> Serialize for HashMap<K, V, H>
+    where K: Serialize + Eq + Hash,
+          V: Serialize,
+          H: BuildHasher,
 {
     #[inline]
     fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
